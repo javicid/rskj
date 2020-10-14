@@ -70,8 +70,7 @@ public class BlockSyncService {
         this.config = config;
     }
 
-    public BlockProcessResult processBlock(@Nonnull Block block, Peer sender, boolean ignoreMissingHashes, boolean connectBlock) {
-        final Instant start = Instant.now();
+    protected boolean preprocessBlock(@Nonnull Block block, Peer sender, boolean ignoreMissingHashes) {
         final long bestBlockNumber = this.getBestBlockNumber();
         final long blockNumber = block.getNumber();
         final Keccak256 blockHash = block.getHash();
@@ -83,8 +82,7 @@ public class BlockSyncService {
         if (blockNumber > bestBlockNumber + syncMaxDistance) {
             logger.trace("Block too advanced {} {} from {} ", blockNumber, block.getPrintableHash(),
                     sender != null ? sender.getPeerNodeID().toString() : "N/A");
-            return new BlockProcessResult(false, null, block.getPrintableHash(),
-                    Duration.between(start, Instant.now()));
+            return false;
         }
 
         if (sender != null) {
@@ -94,8 +92,7 @@ public class BlockSyncService {
         // already in a blockchain
         if (BlockUtils.blockInSomeBlockChain(block, blockchain)) {
             logger.trace("Block already in a chain {} {}", blockNumber, block.getPrintableHash());
-            return new BlockProcessResult(false, null, block.getPrintableHash(),
-                    Duration.between(start, Instant.now()));
+            return false;
         }
         trySaveStore(block);
 
@@ -106,21 +103,27 @@ public class BlockSyncService {
                 logger.trace("Missing hashes for block in process {} {}", blockNumber, block.getPrintableHash());
                 requestMissingHashes(sender, unknownHashes);
             }
+            return false;
+        }
+
+        return true;
+    }
+
+    public BlockProcessResult processBlock(@Nonnull Block block, Peer sender, boolean ignoreMissingHashes) {
+        final Instant start = Instant.now();
+
+        boolean looksGood = preprocessBlock(block, sender, ignoreMissingHashes);
+        if (!looksGood) {
             return new BlockProcessResult(false, null, block.getPrintableHash(),
                     Duration.between(start, Instant.now()));
         }
 
-        if (connectBlock) {
-            logger.trace("Trying to add to blockchain");
+        logger.trace("Trying to add to blockchain");
 
-            Map<Keccak256, ImportResult> connectResult = connectBlocksAndDescendants(sender,
-                    BlockUtils.sortBlocksByNumber(this.getParentsNotInBlockchain(block)), ignoreMissingHashes);
+        Map<Keccak256, ImportResult> connectResult = connectBlocksAndDescendants(sender,
+                BlockUtils.sortBlocksByNumber(this.getParentsNotInBlockchain(block)), ignoreMissingHashes);
 
-            return new BlockProcessResult(true, connectResult, block.getPrintableHash(),
-                    Duration.between(start, Instant.now()));
-        }
-
-        return new BlockProcessResult(true, null, block.getPrintableHash(),
+        return new BlockProcessResult(true, connectResult, block.getPrintableHash(),
                 Duration.between(start, Instant.now()));
     }
 
