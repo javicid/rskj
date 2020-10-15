@@ -65,6 +65,8 @@ public class AsyncNodeBlockProcessor extends NodeBlockProcessor implements Inter
         super(store, blockchain, nodeInformation, blockSyncService, syncConfiguration);
         this.listener = listener;
         this.blockRelayValidator = blockRelayValidator;
+
+        logger.info("AsyncNodeBlockProcessor created.");
     }
 
     public AsyncNodeBlockProcessor(@Nonnull NetBlockStore store, @Nonnull Blockchain blockchain, @Nonnull BlockNodeInformation nodeInformation,
@@ -82,7 +84,7 @@ public class AsyncNodeBlockProcessor extends NodeBlockProcessor implements Inter
         final String peer = sender != null ? sender.getPeerNodeID().toString() : "N/A";
 
         if (store.hasBlock(block)) {
-            logger.trace("Ignored block with number {} and hash {} from {} as it's already in the queue", blockNumber, blockHash, peer);
+            logger.info("Ignored block with number {} and hash {} from {} as it's already in the queue", blockNumber, blockHash, peer);
             return ignoredResult(start, blockHash, null);
         }
 
@@ -91,7 +93,7 @@ public class AsyncNodeBlockProcessor extends NodeBlockProcessor implements Inter
             if (isValid(block)) {
                 boolean offer = blocksToProcess.offer(new BlockInfo(sender, block));
                 if (offer) {
-                    logger.trace("Added block with number {} and hash {} from {} to the queue", blockNumber, blockHash, peer);
+                    logger.info("Added block with number {} and hash {} from {} to the queue", blockNumber, blockHash, peer);
                 } else {
                     // This should not happen as the queue is unbounded
                     logger.warn("Cannot add block for processing into the queue with number {} {} from {}", blockNumber, blockHash, peer);
@@ -142,25 +144,25 @@ public class AsyncNodeBlockProcessor extends NodeBlockProcessor implements Inter
             Block block = null;
 
             try {
-                logger.trace("Awaiting block for processing from the queue...");
+                logger.info("Awaiting block for processing from the queue...");
 
                 BlockInfo blockInfo = blocksToProcess.take();
 
                 sender = blockInfo.peer;
                 block = blockInfo.block;
 
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Start block processing with number {} and hash {} from {}", block.getNumber(), block.getPrintableHash(), sender);
+                if (logger.isInfoEnabled()) {
+                    logger.info("Start block processing with number {} and hash {} from {}", block.getNumber(), block.getPrintableHash(), sender);
                 }
 
                 BlockProcessResult blockProcessResult = blockSyncService.processBlock(block, sender, false);
-                logger.trace("Finished block processing");
+                logger.info("Finished block processing");
 
                 if (listener != null) {
                     listener.onBlockProcessed(this, sender, block, blockProcessResult);
                 }
             } catch (InterruptedException e) {
-                logger.trace("Thread has been interrupted");
+                logger.info("Thread has been interrupted");
 
                 Thread.currentThread().interrupt();
             } catch (Exception e) {

@@ -81,31 +81,31 @@ public class MessageVisitor {
         logger.trace("Process block {} {}", block.getNumber(), block.getPrintableHash());
 
         if (block.isGenesis()) {
-            logger.trace("Skip block processing {} {}", block.getNumber(), block.getPrintableHash());
+            logger.info("Skip block processing {} {}", block.getNumber(), block.getPrintableHash());
             return;
         }
 
         long blockNumber = block.getNumber();
 
         if (this.blockProcessor.isAdvancedBlock(blockNumber)) {
-            logger.trace("Too advanced block {} {}", blockNumber, block.getPrintableHash());
+            logger.info("Too advanced block {} {}", blockNumber, block.getPrintableHash());
             return;
         }
 
         if (blockProcessor.canBeIgnoredForUnclesRewards(block.getNumber())){
-            logger.trace("Block ignored: too far from best block {} {}", blockNumber, block.getPrintableHash());
+            logger.info("Block ignored: too far from best block {} {}", blockNumber, block.getPrintableHash());
             return;
         }
 
         if (blockProcessor.hasBlockInSomeBlockchain(block.getHash().getBytes())){
-            logger.trace("Block ignored: it's included in blockchain {} {}", blockNumber, block.getPrintableHash());
+            logger.info("Block ignored: it's included in blockchain {} {}", blockNumber, block.getPrintableHash());
             return;
         }
 
         BlockProcessResult result = this.blockProcessor.processBlock(sender, block);
 
         if (result.isInvalidBlock()) {
-            logger.trace("Invalid block {} {}", blockNumber, block.getPrintableHash());
+            logger.info("Invalid block {} {}", blockNumber, block.getPrintableHash());
             recordEvent(sender, EventType.INVALID_BLOCK);
             return;
         }
@@ -221,10 +221,13 @@ public class MessageVisitor {
         this.peerScoringManager.recordEvent(sender.getPeerNodeID(), sender.getAddress(), event);
     }
 
-    private void  tryRelayBlock(Block block, BlockProcessResult result) {
+    private void tryRelayBlock(Block block, BlockProcessResult result) {
         // is new block and it is not orphan, it is in some blockchain
         if ((result.isScheduledForProcessing() || result.wasBlockAdded(block)) && !this.blockProcessor.hasBetterBlockToSync()) {
+            logger.info("Relaying block {} {}", block.getNumber(), block.getPrintableHash());
             relayBlock(block);
+        } else {
+            logger.info("Cannot relay block {} {}. [{}, {}, {}]", block.getNumber(), block.getPrintableHash(), result.isScheduledForProcessing(), result.wasBlockAdded(block), this.blockProcessor.hasBetterBlockToSync());
         }
     }
 
