@@ -155,7 +155,7 @@ public class RepositoryBtcBlockStoreWithCache implements BtcBlockStoreWithCache 
             //If its older than cache go to disk
             StoredBlock currentBlock = getFromCache(blockHash);
             if(currentBlock == null) {
-                logger.trace("Missing cache (depth={}), getting from store.", depth);
+                logger.trace("Missing cache (depth={}/{}), getting from store.", i, depth);
                 currentBlock = get(blockHash);
                 if (currentBlock == null) {
                     return null;
