@@ -47,8 +47,8 @@ public class RepositoryBtcBlockStoreWithCache implements BtcBlockStoreWithCache 
     private final Repository repository;
     private final RskAddress contractAddress;
     private final NetworkParameters btcNetworkParams;
-    public static final int MAX_DEPTH_STORED_BLOCKS = 5_000;
-    public static final int MAX_SIZE_MAP_STORED_BLOCKS = 10_000;
+    public static final int MAX_DEPTH_STORED_BLOCKS = 50_000;
+    public static final int MAX_SIZE_MAP_STORED_BLOCKS = 100_000;
     private final Map<Sha256Hash, StoredBlock> cacheBlocks;
 
     public RepositoryBtcBlockStoreWithCache(NetworkParameters btcNetworkParams, Repository repository, Map<Sha256Hash, StoredBlock> cacheBlocks, RskAddress contractAddress) {
